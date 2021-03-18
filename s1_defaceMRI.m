@@ -86,6 +86,8 @@ for findex = 1: numel ( files )
         
         fprintf ( 1, '  Doing 6-param rigid-body transform to TPM space.\n' );
         
+        ft_hastoolbox ( 'spm8', 1, 1 );
+        
         flags = struct();
         %flags.cost_fun = 'nmi';
         flags.cost_fun = 'ncc';
@@ -94,7 +96,8 @@ for findex = 1: numel ( files )
         end
         nat = spm_vol(mri_file); % spm_vol says doesn't handle compressed files, but seems to work even if don't gunzip above!
 %        cT1 = spm_vol(fullfile(pwd,'spm12_functions','avg305T1.nii')); % I copied this T1 image from SPM
-        cT1 = spm_vol(fullfile(pwd,'spm12_functions','single_subj_T1.nii')); % I copied this T1 image from SPM
+%         cT1 = spm_vol(fullfile(pwd,'spm12_functions','single_subj_T1.nii')); % I copied this T1 image from SPM
+        cT1 = spm_vol ( which ( 'single_subj_T1.nii' ) );
         x = spm_coreg(nat,cT1,flags);
         
         nat2acpc = spm_matrix(x(:)'); %mri.mat\spm_matrix(x(:)')*cT1.mat
