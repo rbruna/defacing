@@ -29,7 +29,9 @@ The file must contain, at least, three variables:
 * _pc_, with the position (in voxel coordinates) of the posterior commisure.
 * _xzpoint_, with the position (in voxel coordinates) of a point in the positive Z values of the XY plane (interhemispheric point above both ac and pc).
 
-See https://www.fieldtriptoolbox.org/reference/ft_volumerealign/ for a more detailed description.
+See [FieldTrip manual] for a more detailed description.
+
+[FieldTrip manual]: https://www.fieldtriptoolbox.org/reference/ft_volumerealign/
 
 ### 2. Transformation to Tailarach space
 
