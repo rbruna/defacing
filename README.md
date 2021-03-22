@@ -3,9 +3,11 @@ MRI anonymization algorithm
 
 This code removes the face from an MRI in a three-step procedure based on John Ashburner's and Karl Friston's "Unified segmentation" algorithm.
 
-* In a first step, the MRI is non-linearly realigned to MNI space, using as target the whole-head tissue probability map "NY-head" (ICBM-NY, https://www.parralab.org/nyhead/).
+* In a first step, the MRI is non-linearly realigned to MNI space, using as target the whole-head tissue probability map "NY-head" (ICBM-NY, https://www.parralab.org/nyhead/, see [Huang, Parra & Haufe 2016 NeuroImage 140:150]).
 * In a second step, the tissue probabily map is replaced by a version including the face as a separated tissue, and the face tissue is sampled into the original MRI.
 * Last, the face tissue (probability higher than 10%) is removed (for the "deftrim" version) or blurred (for the "def" version).
+
+[Huang, Parra & Haufe 2016 NeuroImage 140:150]: https://doi.org/10.1016/j.neuroimage.2015.12.019
 
 ## Preparing the input
 
