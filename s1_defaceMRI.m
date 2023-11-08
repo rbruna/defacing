@@ -28,8 +28,10 @@ ft_default.checkconfig  = 'silent';
 ft_hastoolbox ( 'freesurfer', 1, 1 );
 
 
-% Creates and output folder, if needed.
+% Creates and output folders, if needed.
 if ~exist ( config.path.def, 'dir' ), mkdir ( config.path.def ); end
+if ~exist ( config.path.trim, 'dir' ), mkdir ( config.path.trim ); end
+
 
 
 % Loads the tissue probability maps.
