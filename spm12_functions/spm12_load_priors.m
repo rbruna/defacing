@@ -31,6 +31,7 @@ end
 
 % Gets the selected volumes.
 vols      = tpmmri.anatomy ( :, :, :, tpmvols );
+vols      = double ( vols );
 
 
 % Stores the data and metadata.
@@ -67,4 +68,3 @@ for vindex = 1: numel ( tpmvols )
 %     tpm.dat { vindex } = spm12_bsplinc ( logvol, [ deg deg deg ] );
     tpm.dat { vindex } = spm12_bsplinc ( logvol, deg );
 end
-
