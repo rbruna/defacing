@@ -66,7 +66,8 @@ for findex = 1: numel ( files )
         cfg.coordsys   = 'acpc';
         cfg.fiducial   = landmark;
         
-        mri_acpc       = ft_volumerealign ( cfg, mri );
+%         mri_acpc       = ft_volumerealign ( cfg, mri );
+        [ ~, mri_acpc ]  = evalc ( 'ft_volumerealign ( cfg, mri );' );
         
         % Gets the transformation matrix from native to AC-PC.
         nat2acpc       = mri_acpc.transform / mri.transform;
@@ -109,9 +110,25 @@ for findex = 1: numel ( files )
     end
     
      
-    % Performs a two-step affine registration from native to TPM space.
-    nat2tpm        = spm12_maff ( mri, 3, 16, tpm, nat2tpm, 'mni' );
-    nat2tpm        = spm12_maff ( mri, 3,  0, tpm, nat2tpm, 'mni' );
+    % Reslices the volume into a temporary AC-PC-like shape.
+    mri_acpc     = mri;
+    mri_acpc.transform = nat2tpm * mri.transform;
+    
+%     mri_acpc     = ft_volumereslice ( [], mri_acpc );
+    [ ~, mri_acpc ] = evalc ( 'ft_volumereslice ( [], mri_acpc );' );
+    
+    % Performs a two-step affine registration from AC-PC to TPM space.
+    acpc2tpm       = eye (4);
+    acpc2tpm       = spm12_maff ( mri_acpc, 3, 16, tpm, acpc2tpm, 'mni' );
+    acpc2tpm       = spm12_maff ( mri_acpc, 3,  0, tpm, acpc2tpm, 'mni' );
+    
+    % Combines both transformations.
+    nat2tpm        = nat2acpc * acpc2tpm;
+
+    
+%     % Performs a two-step affine registration from native to TPM space.
+%     nat2tpm        = spm12_maff ( mri, 3, 16, tpm, nat2tpm, 'mni' );
+%     nat2tpm        = spm12_maff ( mri, 3,  0, tpm, nat2tpm, 'mni' );
     
     % Gets the linear transformation MRI voxels to TPM voxels.
     vox2tpmvox     = tpm.M \ nat2tpm * mri.transform;
