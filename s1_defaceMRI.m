@@ -123,7 +123,7 @@ for findex = 1: numel ( files )
     acpc2tpm       = spm12_maff ( mri_acpc, 3,  0, tpm, acpc2tpm, 'mni' );
     
     % Combines both transformations.
-    nat2tpm        = nat2acpc * acpc2tpm;
+    nat2tpm        = nat2tpm * acpc2tpm;
 
     
 %     % Performs a two-step affine registration from native to TPM space.
