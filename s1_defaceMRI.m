@@ -19,19 +19,8 @@ addpath ( sprintf ( '%s/functions/', pwd ) );
 % Adds, if needed, the FieldTrip folder to the path.
 myft_path
 
-% Disables the FT feedback.
-global ft_default;
-ft_default.showcallinfo = 'no';
-ft_default.checkconfig  = 'silent';
-
 % Adds the FT toolboxes that will be required.
 ft_hastoolbox ( 'freesurfer', 1, 1 );
-
-
-% Creates and output folders, if needed.
-if ~exist ( config.path.def, 'dir' ), mkdir ( config.path.def ); end
-if ~exist ( config.path.trim, 'dir' ), mkdir ( config.path.trim ); end
-
 
 
 % Loads the tissue probability maps.
@@ -40,78 +29,96 @@ tpm_face      = spm12_load_priors ( 'NYH_TPM_face.nii.gz' );
 
 
 % Gets the list of input MRIs.
-files = dir ( sprintf ( '%s%s', config.path.mri, config.path.patt ) );
+files         = dir ( sprintf ( '%s%s', config.path.mri, config.path.patt ) );
 
 % Goes through all the files.
 for findex = 1: numel ( files )
     
     % Gets the base file name.
-    basename       = regexprep ( files ( findex ).name, '\.nii(.gz)?$', '' );
+    mrifile       = files ( findex ).name;
+    basename      = regexprep ( files ( findex ).name, '\.nii(.gz)?$', '' );
     
-    fprintf ( 1, 'Working with file %s.\n', basename );
+    fprintf ( 1, 'Working with file %s.\n', mrifile );
     
     % Reads the MRI file.
-    mri            = myft_read_mri ( sprintf ( '%s%s', config.path.mri, files ( findex ).name ) );
+    mri            = myft_read_mri ( sprintf ( '%s%s', config.path.mri, mrifile ) );
     
     % Tries to load the AC-PC landmarks.
     if exist ( sprintf ( '%s%s.mat', config.path.mri, basename ), 'file' )
         fprintf ( 1, '  Transforming the MRI to AC-PC coordinates.\n' );
         
         % Loads the landmark definition.
-        landmark       = load ( sprintf ( '%s%s', config.path.mri, basename ) );
+        landmark      = load ( sprintf ( '%s%s', config.path.mri, basename ) );
         
         % Transforms the MRI to AC-PC coordinates.
-        cfg            = [];
-        cfg.method     = 'fiducial';
-        cfg.coordsys   = 'acpc';
-        cfg.fiducial   = landmark;
+        cfg           = [];
+        cfg.method    = 'fiducial';
+        cfg.coordsys  = 'acpc';
+        cfg.fiducial  = landmark;
         
 %         mri_acpc       = ft_volumerealign ( cfg, mri );
         [ ~, mri_acpc ]  = evalc ( 'ft_volumerealign ( cfg, mri );' );
         
         % Gets the transformation matrix from native to AC-PC.
-        nat2acpc       = mri_acpc.transform / mri.transform;
+        nat2acpc      = mri_acpc.transform / mri.transform;
         
         % Uses this transformation as starting point.
-        nat2tpm = nat2acpc;
+        nat2tpm       = nat2acpc;
         
     % Otherwise tries to load the transformation to Talairach space.
     elseif exist ( sprintf ( '%s%s_nat2tal.xfm', config.path.mri, basename ), 'file' )
         
         % Loads the transformation to Talairach space.
-        nat2tal = myfs_read_xfm ( sprintf ( '%s%s_nat2tal.xfm', config.path.mri, basename ) );
+        nat2tal       = myfs_read_xfm ( sprintf ( '%s%s_nat2tal.xfm', config.path.mri, basename ) );
         
         % Uses this transformation as starting point.
-        nat2tpm = nat2tal;
+        nat2tpm       = nat2tal;
         
     % As a last resort tries to perform a rigid body transformation.
+    % Courtesy of Rik Henson.
     else
         
         fprintf ( 1, '  Doing 6-param rigid-body transform to TPM space.\n' );
         
-        ft_hastoolbox ( 'spm8', 1, 1 );
+        % Adds SPM12 lite to the path.
+        ft_hastoolbox ( 'spm12', 1, 1 );
         
-        flags = struct();
+        % Gets the MRI file.
+        mri_file      = sprintf ( '%s%s', config.path.mri, mrifile );
+        
+        % Uncompress the MRI file (not required?).
+        if strcmp ( mri_file ( ( end - 2 ): end ), '.gz' )
+            mri_file      = gunzip ( mri_file );
+            mri_file      = mri_file {1};
+            rmmri         = true;
+        else
+            rmmri         = false;
+        end
+        
+        % Loads the MRI file and the MNI template.
+        natmri        = spm_vol ( mri_file );
+        mnimri        = spm_vol ( which ( 'single_subj_T1.nii' ) );
+        
+        % Co-registrates the MRI file to the MNI template.
+        flags         = struct ();
         %flags.cost_fun = 'nmi';
         flags.cost_fun = 'ncc';
-        if strcmp(mri_file((end-2):end),'.gz')
-            mri_file = gunzip(mri_file); mri_file = mri_file{1};
-        end
-        nat = spm_vol(mri_file); % spm_vol says doesn't handle compressed files, but seems to work even if don't gunzip above!
-%        cT1 = spm_vol(fullfile(pwd,'spm12_functions','avg305T1.nii')); % I copied this T1 image from SPM
-%         cT1 = spm_vol(fullfile(pwd,'spm12_functions','single_subj_T1.nii')); % I copied this T1 image from SPM
-        cT1 = spm_vol ( which ( 'single_subj_T1.nii' ) );
-        x = spm_coreg(nat,cT1,flags);
         
-        nat2acpc = spm_matrix(x(:)'); %mri.mat\spm_matrix(x(:)')*cT1.mat
+        dummy         = spm_coreg ( natmri, mnimri, flags );
+        
+        % Gets the native-to-MNI transformation in matrix form.
+        nat2mni       = spm_matrix ( dummy (:)' );
         
         % Uses this transformation as starting point.
-        nat2tpm = nat2acpc;
+        nat2tpm       = nat2mni;
+        
+        % Removes the uncompressed MRI, if required.
+        if rmmri, delete ( mri_file ), end
     end
     
-     
+    
     % Reslices the volume into a temporary AC-PC-like shape.
-    mri_acpc     = mri;
+    mri_acpc       = mri;
     mri_acpc.transform = nat2tpm * mri.transform;
     
 %     mri_acpc     = ft_volumereslice ( [], mri_acpc );
