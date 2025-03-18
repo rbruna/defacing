@@ -23,6 +23,11 @@ myft_path
 ft_hastoolbox ( 'freesurfer', 1, 1 );
 
 
+% Creates and output folders, if required.
+if ~exist ( config.path.def, 'dir' ),  mkdir ( config.path.def );  end
+if ~exist ( config.path.trim, 'dir' ), mkdir ( config.path.trim ); end
+
+
 % Loads the tissue probability maps.
 tpm           = spm12_load_priors ( 'NYH_TPM.nii.gz' );
 tpm_face      = spm12_load_priors ( 'NYH_TPM_face.nii.gz' );
